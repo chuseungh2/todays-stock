@@ -73,8 +73,6 @@ I use AI every day and it's made a lot of things easier. Watching mom study stoc
 - English / financial jargon → plain Korean explanation
 - Trending stock & theme roundup (information only, no recommendations)
 
-**Full build spec:** [`주식GPT_빌드패키지_v1.md`](./주식GPT_빌드패키지_v1.md)
-
 ---
 
 ## 5. User Testing Evidence
@@ -112,9 +110,14 @@ Instead of walking away (Test 1), mom sent follow-up feature requests — engage
 
 **KakaoTalk feedback screenshots** (Korean — translations provided inline above):
 
-![KakaoTalk feedback 1](./kakao_feedback_1.png)
-![KakaoTalk feedback 2](./kakao_feedback_2.png)
-![KakaoTalk feedback 3 — issue resolved](./kakao_feedback_3.jpg)
+![KakaoTalk feedback — Test 1 (v1.1)](./kakao_feedback_1.png)
+*Test 1 feedback: "I asked but it just told me to decide on my own?" — triggered the v1.1 → v1.2 rebuild.*
+
+![KakaoTalk feedback — Test 2 (v1.2)](./kakao_feedback_2.png)
+*Test 2 feedback: "It's like having a briefing secretary — I don't have to search one by one anymore."*
+
+![KakaoTalk feedback — Mom satisfied (final)](./kakao_feedback_3.jpg)
+*Final feedback: Mom confirmed satisfaction after the iteration. Used the GPT for a real purchase decision (LG이노텍, ₩920,000).*
 
 ---
 
@@ -225,7 +228,7 @@ Yes. Every decision in this project traces back to mom specifically — not to a
 The design decisions are mine. I rejected the all-in-one GPT, the KakaoTalk bot, the voice mode, the recommendation framing, the report-style answer structure — all of them came from AI, and I pushed back on all of them with reasons grounded in the research. The Design Argument came from my answers to questions about my mom — my observations, my reasoning, my relationship with her. AI organized the words. The thinking was mine.
 
 **Did I verify?**
-Yes. Two rounds of testing with mom on her actual device. First Contact (v1.1) failed — she walked away with nothing, same pattern as why she gave up on ChatGPT for stocks originally. That failure drove the v1.2 rebuild. The second test used v1.2 on a real stock she had just purchased (LG이노텍, ₩920,000). She called it "like a briefing secretary" and said it's better than searching one by one. She sent follow-up feature requests — which means she engaged instead of giving up. The loop was closed.
+Yes. Two rounds of testing with mom on her actual device. First Contact (v1.1) failed — she walked away with nothing, same pattern as why she gave up on ChatGPT for stocks originally. That failure drove the v1.2 rebuild. The second test used v1.2 on a real stock she had just purchased (LG이노텍, ₩920,000). She called it "like a briefing secretary" and said it's better than searching one by one. She sent follow-up feature requests — which means she engaged instead of giving up. A final check confirmed she was satisfied with the result. The loop was closed.
 
 **Would I teach this?**
 The thing worth teaching is that the hardest design problem in this project wasn't technical — it was the central conflict between what mom wanted most (buy/sell signals) and what the GPT legally couldn't give her. The resolution wasn't to ignore one side or the other. It was to reframe: don't substitute the decision, lower the cost of making it. That's a transferable idea. When what the user wants and what you can give are in direct conflict, the answer is usually somewhere in the middle — and finding that middle is the design work.
@@ -257,33 +260,8 @@ Designing for mom meant building with the assumption that she can't write good p
 
 ---
 
-## 11. Case Study Presentation
-
-> Session 20 — defend, don't demo
-
-Presentation order: The Person → The Problem → The Thesis → The Prototype → First Contact → The Iteration → The Evidence
-
----
-
-## 12. Marketing Minute
+## 11. Marketing Minute
 
 > ⚠️ 60-second video — YouTube + Instagram format
 
 [ Link or file ]
-
----
-
-## 13. File Structure
-
-```
-AI 201/
-├── README.md                        ← This file (all submissions)
-├── Design_Argument.md               ← Fill in [ ] sections yourself
-├── Research_Documentation.md        ← Research record
-├── 주식GPT_빌드패키지_v1.md           ← System prompt + build guide (Korean)
-├── AI_Direction_Log.md              ← 7 AI direction entries
-├── Records_of_Resistance.md         ← 6 resistance records
-├── User_Testing_Evidence.md         ← First Contact + iteration record
-├── Post_Mortem.md                   ← Post-mortem (fill in [ ] sections)
-└── Mermaid_Diagram.mermaid          ← System architecture diagram
-```

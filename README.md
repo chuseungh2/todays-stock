@@ -258,3 +258,4 @@ Designing for mom meant building with the assumption that she can't write good p
 
 > *"Set up the tool for the task, and the person will use it. Mom was already proving that at the doctor's office."*
 
+## Marketing Minute

@@ -258,4 +258,11 @@ Designing for mom meant building with the assumption that she can't write good p
 
 > *"Set up the tool for the task, and the person will use it. Mom was already proving that at the doctor's office."*
 
-## Marketing Minute
+
+## 11. Marketing Minute
+
+> ⚠️ 60-second video — YouTube + Instagram format
+
+**Watch:** [`Marketing_Minute.html`](./Marketing_Minute.html)
+
+This HTML file plays the 60-second Marketing Minute with built-in subtitles and browser narration. For public viewing, publish this repository with GitHub Pages and use the Pages URL for `Marketing_Minute.html`.

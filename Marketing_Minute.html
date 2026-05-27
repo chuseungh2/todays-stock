@@ -1,0 +1,941 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Today's Stock — Marketing Minute (60s)</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:ital,opsz,wght@0,9..144,300..700;1,9..144,300..700&family=Plus+Jakarta+Sans:wght@300;400;500;600;700&family=Gowun+Dodum&family=Caveat:wght@400;700&family=JetBrains+Mono:wght@400&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --paper:#F8F3E8;
+    --paper-2:#F1E9D9;
+    --paper-soft:#EFE6D3;
+    --ink:#1F1A14;
+    --ink-2:#3D352B;
+    --ink-soft:#6B6253;
+    --muted:#9A9080;
+    --terra:#C0552E;
+    --mustard:#D49B3F;
+    --sage:#6B8E5A;
+    --rose:#B85450;
+    --line:#1F1A14;
+    --serif:'Fraunces', Georgia, serif;
+    --sans:'Plus Jakarta Sans', -apple-system, BlinkMacSystemFont, sans-serif;
+    --kr:'Gowun Dodum', sans-serif;
+    --hand:'Caveat', cursive;
+    --mono:'JetBrains Mono', monospace;
+  }
+  *{box-sizing:border-box;margin:0;padding:0}
+  html,body{background:#2A2520;color:var(--ink);font-family:var(--sans);overflow:hidden;height:100%;width:100%}
+  body{display:flex;align-items:center;justify-content:center;min-height:100vh}
+
+  /* --- Stage (the recordable canvas) --- */
+  .stage{
+    position:relative;
+    background:var(--paper);
+    overflow:hidden;
+    box-shadow:0 30px 100px rgba(0,0,0,.45);
+  }
+  .stage.fmt-yt{ width:min(96vw, calc(96vh * 16/9)); aspect-ratio:16/9; }
+  .stage.fmt-ig{ width:min(50vw, calc(96vh * 9/16)); aspect-ratio:9/16; }
+
+  /* Paper texture */
+  .stage::before{
+    content:"";position:absolute;inset:0;pointer-events:none;z-index:50;
+    background:
+      radial-gradient(ellipse at 20% 0%, rgba(212,155,63,.08) 0%, transparent 60%),
+      radial-gradient(ellipse at 90% 100%, rgba(192,85,46,.06) 0%, transparent 50%);
+  }
+  .stage::after{
+    content:"";position:absolute;inset:0;pointer-events:none;z-index:51;opacity:.4;
+    background-image:url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='200' height='200'><filter id='n'><feTurbulence baseFrequency='.65' numOctaves='2' stitchTiles='stitch'/><feColorMatrix values='0 0 0 0 0.12, 0 0 0 0 0.10, 0 0 0 0 0.08, 0 0 0 0.04 0'/></filter><rect width='100%' height='100%' filter='url(%23n)'/></svg>");
+    mix-blend-mode:multiply;
+  }
+
+  /* --- Controls --- */
+  .controls{
+    position:fixed;top:14px;left:14px;right:14px;z-index:9999;
+    display:flex;justify-content:space-between;align-items:center;
+    font-family:var(--sans);font-size:12px;color:#C9C2B5;
+    pointer-events:none;
+  }
+  .controls > *{pointer-events:auto}
+  .pill{
+    background:rgba(20,16,12,.85);border:1px solid rgba(255,255,255,.08);
+    border-radius:999px;padding:8px 14px;display:inline-flex;gap:10px;align-items:center;
+    backdrop-filter:blur(8px);color:#E8DFD0;
+  }
+  .pill button{
+    background:transparent;color:#A09988;border:0;cursor:pointer;
+    font:inherit;padding:4px 10px;border-radius:999px;letter-spacing:.04em;
+  }
+  .pill button.active{background:var(--paper);color:var(--ink)}
+  .brand{font-family:var(--serif);font-style:italic;color:var(--paper);letter-spacing:.01em;font-size:13px}
+  body.playing .controls{opacity:0;pointer-events:none;transition:opacity .4s}
+
+  /* --- Play overlay --- */
+  .play-overlay{
+    position:absolute;inset:0;z-index:200;display:flex;flex-direction:column;
+    align-items:center;justify-content:center;
+    background:rgba(248,243,232,.96);
+    backdrop-filter:blur(6px);transition:opacity .6s, visibility .6s;
+    text-align:center;padding:6%;
+  }
+  .play-overlay h1{
+    font-family:var(--serif);font-weight:400;font-size:clamp(28px,4vw,52px);
+    letter-spacing:-.015em;margin-bottom:.5em;color:var(--ink);line-height:1.15;
+  }
+  .play-overlay h1 em{font-style:italic;color:var(--terra);font-weight:400}
+  .play-overlay .sub{color:var(--ink-soft);font-size:clamp(13px,1.1vw,16px);max-width:44ch;line-height:1.6}
+  .play-overlay .row{display:flex;gap:14px;align-items:center;margin-top:34px;flex-wrap:wrap;justify-content:center}
+  .play-overlay .play-btn{
+    background:var(--ink);color:var(--paper);
+    border:0;border-radius:999px;padding:18px 38px;font:600 14px/1 var(--sans);
+    letter-spacing:.1em;text-transform:uppercase;cursor:pointer;
+    box-shadow:0 10px 30px rgba(31,26,20,.18);transition:transform .15s, background .2s;
+  }
+  .play-overlay .play-btn:hover{transform:translateY(-2px);background:var(--terra)}
+  .play-overlay .toggle-voice{
+    background:transparent;color:var(--ink-soft);
+    border:1.5px solid var(--ink-soft);border-radius:999px;padding:16px 22px;
+    font:500 13px/1 var(--sans);letter-spacing:.04em;cursor:pointer;display:inline-flex;gap:8px;align-items:center;
+  }
+  .play-overlay .toggle-voice.on{background:var(--mustard);border-color:var(--mustard);color:var(--ink)}
+  .play-overlay .hint{margin-top:18px;color:var(--muted);font-size:11px;letter-spacing:.12em;text-transform:uppercase;font-family:var(--mono)}
+  body.playing .play-overlay{opacity:0;visibility:hidden}
+
+  /* --- Scenes --- */
+  .scene{
+    position:absolute;inset:0;display:flex;align-items:center;justify-content:center;
+    opacity:0;visibility:hidden;transition:opacity .7s ease, visibility .7s;
+    padding:6%;color:var(--ink);
+  }
+  body.playing .scene.on{opacity:1;visibility:visible}
+
+  /* Subtitle — thin caption strip at the very bottom */
+  .subtitle{
+    position:absolute;left:0;right:0;bottom:1.5%;z-index:100;
+    display:flex;justify-content:center;pointer-events:none;padding:0 6%;
+  }
+  .subtitle .sub-inner{
+    font-family:var(--sans);font-weight:500;
+    color:var(--ink);text-align:center;background:transparent;
+    padding:4px 10px;line-height:1.3;
+    max-width:80%;font-size:clamp(11px,1.05vw,15px);
+    letter-spacing:.005em;opacity:0;transition:opacity .35s;
+    text-shadow:0 0 8px var(--paper), 0 0 4px var(--paper);
+  }
+  .subtitle.show .sub-inner{opacity:.85}
+  .stage.fmt-ig .subtitle{bottom:5%}
+  .stage.fmt-ig .subtitle .sub-inner{font-size:clamp(10px,1.4vw,14px);max-width:92%}
+
+  /* SVG illustrations — chunky outlined silhouette style, hand-drawn texture */
+  .ill{display:block;width:100%;height:auto;color:var(--ink)}
+  .ill .stroke{
+    stroke:#1A1410;fill:none;stroke-width:9;
+    stroke-linecap:round;stroke-linejoin:round;
+  }
+  .ill .stroke-thin{stroke-width:5;opacity:.45}
+  .ill .ink{fill:#1A1410;stroke:none}
+  /* Reveal animation — fade + slight rise instead of dashoffset (looks better for chunky filled silhouettes) */
+  .ill > g{
+    opacity:0;transform:translateY(8px);
+    animation:illReveal 1.2s ease .3s forwards;
+  }
+  @keyframes illReveal{
+    0%{opacity:0;transform:translateY(12px) scale(.98)}
+    60%{opacity:1;transform:translateY(0) scale(1.01)}
+    100%{opacity:1;transform:translateY(0) scale(1)}
+  }
+  @keyframes breathe{0%,100%{transform:translateY(0)}50%{transform:translateY(-3px)}}
+
+  /* ====== SCENE 1: YOUTUBE OVERLOAD ====== */
+  .s-spiral{overflow:hidden;align-items:stretch;padding:0}
+  .yt-grid{
+    position:absolute;inset:-15% -10%;display:grid;
+    grid-template-columns:repeat(5,1fr);gap:18px;
+    transform:rotate(-5deg) scale(.92);
+    animation:spiralDrift 9s linear forwards;
+  }
+  .stage.fmt-ig .yt-grid{grid-template-columns:repeat(3,1fr)}
+  .yt-card{
+    background:var(--paper);
+    border:1.5px solid var(--ink);
+    border-radius:6px;padding:14px;aspect-ratio:16/10;
+    display:flex;flex-direction:column;justify-content:space-between;
+    box-shadow:3px 4px 0 var(--ink);
+  }
+  .yt-card .thumb{
+    background:repeating-linear-gradient(135deg,var(--paper-2) 0,var(--paper-2) 6px,var(--paper-soft) 6px,var(--paper-soft) 12px);
+    border:1.2px solid var(--ink);height:58%;border-radius:3px;position:relative;overflow:hidden;
+  }
+  .yt-card .thumb::before{
+    content:"▶";position:absolute;inset:0;display:flex;align-items:center;justify-content:center;
+    color:var(--terra);font-size:20px;
+  }
+  .yt-card .title{font:400 11px/1.3 var(--kr);color:var(--ink);margin-top:8px}
+  .yt-card .meta{font:400 9px/1 var(--mono);color:var(--ink-soft);margin-top:4px}
+  .s-spiral .overlay-text{
+    position:absolute;z-index:30;left:8%;bottom:18%;max-width:62%;
+    opacity:0;animation:fadeUp 1s 1.4s forwards;
+  }
+  .s-spiral .overlay-text .tag{
+    font:400 28px/1 var(--hand);color:var(--terra);margin-bottom:14px;transform:rotate(-2deg);display:inline-block;
+  }
+  .s-spiral .overlay-text .line{
+    font-family:var(--serif);font-size:clamp(24px,3.2vw,46px);line-height:1.2;color:var(--ink);font-weight:400;
+    letter-spacing:-.01em;
+  }
+  .s-spiral .overlay-text .line em{font-style:italic;color:var(--terra)}
+  .s-spiral .vignette{
+    position:absolute;inset:0;z-index:20;
+    background:radial-gradient(ellipse at 22% 70%, rgba(248,243,232,.2) 0%, rgba(248,243,232,.92) 55%, rgba(248,243,232,1) 100%);
+  }
+  @keyframes spiralDrift{
+    0%{transform:rotate(-5deg) scale(.88) translateY(-4%)}
+    100%{transform:rotate(-2deg) scale(1.02) translateY(6%)}
+  }
+
+  /* ====== SCENE 2: TRIED AI ====== */
+  .s-tried{flex-direction:column;align-items:center;gap:24px;justify-content:center}
+  .chat-frame{
+    width:min(620px,82%);background:#FFFFFF;border:1.5px solid var(--ink);
+    border-radius:14px;padding:0;overflow:hidden;
+    box-shadow:5px 6px 0 var(--ink);
+    opacity:0;transform:translateY(20px);
+    animation:popIn .8s .2s forwards;
+  }
+  .stage.fmt-ig .chat-frame{width:92%}
+  .chat-frame .gpt-header{
+    display:flex;align-items:center;gap:10px;padding:14px 18px;
+    border-bottom:1.5px solid var(--ink);background:var(--paper);
+  }
+  .gpt-dot{width:30px;height:30px;border-radius:50%;background:#10A37F;display:flex;align-items:center;justify-content:center;color:#fff;font-weight:700;font-size:14px;font-family:var(--serif)}
+  .gpt-name{font:600 13px/1 var(--sans);color:var(--ink)}
+  .gpt-name .gpt-sub{display:block;font:400 11px/1 var(--mono);color:var(--ink-soft);margin-top:5px;letter-spacing:.04em}
+  .chat-body{padding:20px 22px;background:#FFFFFF}
+  .bubble-user{
+    background:var(--paper-2);border:1px solid var(--ink);border-radius:12px;
+    padding:12px 16px;font:400 14px/1.5 var(--kr);
+    color:var(--ink);max-width:75%;margin-left:auto;margin-bottom:14px;
+    opacity:0;animation:fadeUp .6s .8s forwards;
+  }
+  .bubble-user .en{display:block;color:var(--ink-soft);font-size:11px;margin-top:6px;font-family:var(--mono)}
+  .bubble-gpt{
+    border-left:3px solid var(--rose);
+    background:#FAF6EC;padding:14px 16px;font:400 14px/1.55 var(--sans);
+    color:var(--ink);max-width:90%;border-radius:0 8px 8px 0;
+    opacity:0;animation:fadeIn .5s 1.6s forwards;
+  }
+  .bubble-gpt strong{color:var(--rose);font-weight:700}
+  .typing{
+    display:inline-flex;gap:4px;align-items:center;padding:8px 12px;background:#F4F0E6;border-radius:8px;
+    opacity:0;animation:fadeIn .3s 1.2s forwards, fadeOutTyping .1s 1.6s forwards;
+  }
+  .typing span{width:6px;height:6px;background:var(--ink-soft);border-radius:50%;animation:bounce 1s infinite}
+  .typing span:nth-child(2){animation-delay:.15s}
+  .typing span:nth-child(3){animation-delay:.3s}
+  @keyframes bounce{0%,80%,100%{transform:translateY(0);opacity:.4}40%{transform:translateY(-4px);opacity:1}}
+  @keyframes fadeOutTyping{to{opacity:0;display:none}}
+
+  /* ====== SCENE 3: WALKED AWAY ====== */
+  .s-walked{justify-content:center;align-items:center;gap:48px;padding:5%}
+  .stage.fmt-ig .s-walked{flex-direction:column;gap:24px}
+  .walked-ill{
+    flex:0 0 auto;width:40%;max-width:440px;
+    opacity:0;animation:fadeUp 1s .2s forwards;
+  }
+  .stage.fmt-ig .walked-ill{width:78%;max-width:none}
+  .walked-text{flex:1;max-width:46%;opacity:0;animation:fadeUp 1s .8s forwards}
+  .stage.fmt-ig .walked-text{max-width:90%;text-align:center}
+  .walked-text .quote{
+    font-family:var(--serif);font-style:italic;font-weight:400;
+    font-size:clamp(32px,4.4vw,64px);line-height:1.15;color:var(--ink);letter-spacing:-.01em;
+  }
+  .walked-text .attrib{
+    font:500 11px/1 var(--mono);color:var(--ink-soft);letter-spacing:.3em;text-transform:uppercase;margin-top:18px;
+  }
+  .walked-text .kakao-snip{
+    margin-top:22px;background:#FFFFFF;border:1.5px solid var(--ink);
+    border-radius:10px;padding:14px 16px;box-shadow:3px 4px 0 var(--ink);
+    font:400 13px/1.5 var(--kr);color:var(--ink);max-width:340px;
+  }
+  .stage.fmt-ig .walked-text .kakao-snip{margin:22px auto 0}
+  .kakao-snip .from{font:600 10px/1 var(--mono);color:var(--mustard);letter-spacing:.2em;text-transform:uppercase;margin-bottom:8px}
+  .kakao-snip .en{font:italic 12px/1.5 var(--serif);color:var(--ink-soft);margin-top:8px}
+
+  /* ====== SCENE 4: DOCTOR PIVOT ====== */
+  .s-doctor{justify-content:center;align-items:center;gap:42px;padding:5%}
+  .stage.fmt-ig .s-doctor{flex-direction:column;gap:20px}
+  .doctor-ill{flex:0 0 auto;width:30%;max-width:300px;opacity:0;animation:fadeUp 1s .2s forwards}
+  .stage.fmt-ig .doctor-ill{width:45%}
+  .doctor-content{flex:1;max-width:48%;opacity:0;animation:fadeUp 1s .9s forwards}
+  .stage.fmt-ig .doctor-content{max-width:90%;text-align:center}
+  .doctor-eyebrow{font:400 26px/1 var(--hand);color:var(--sage);margin-bottom:14px;transform:rotate(-1deg);display:inline-block}
+  .doctor-line{
+    font-family:var(--serif);font-size:clamp(26px,3.6vw,48px);line-height:1.22;color:var(--ink);font-weight:400;letter-spacing:-.01em;
+  }
+  .doctor-line em{font-style:italic;color:var(--sage)}
+  .doctor-cards{display:flex;gap:14px;margin-top:22px;flex-wrap:wrap}
+  .stage.fmt-ig .doctor-cards{justify-content:center}
+  .doctor-card{
+    background:var(--paper);border:1.5px solid var(--ink);border-radius:8px;
+    padding:12px 16px;display:flex;align-items:center;gap:10px;
+    box-shadow:2px 3px 0 var(--ink);
+    font:500 12px/1.3 var(--sans);color:var(--ink);
+  }
+  .doctor-card .ico{font-size:18px}
+
+  /* ====== SCENE 5: INSIGHT ====== */
+  .s-insight{flex-direction:column;justify-content:center;text-align:center;gap:20px;padding:8%}
+  .s-insight .strike{
+    font-family:var(--serif);font-weight:400;font-size:clamp(32px,4.6vw,68px);line-height:1.15;
+    color:var(--ink-soft);position:relative;display:inline-block;
+    opacity:0;animation:fadeUp 1s .2s forwards;
+  }
+  .s-insight .strike::after{
+    content:"";position:absolute;left:-4%;right:-4%;top:54%;height:4px;
+    background:var(--rose);transform:scaleX(0);transform-origin:left;
+    animation:strikeIn .8s 1.2s forwards;
+  }
+  @keyframes strikeIn{to{transform:scaleX(1)}}
+  .s-insight .real{
+    font-family:var(--serif);font-style:italic;font-weight:500;
+    font-size:clamp(34px,5vw,76px);line-height:1.15;
+    color:var(--ink);max-width:22ch;letter-spacing:-.015em;
+    opacity:0;animation:fadeUp 1s 2s forwards;
+  }
+  .s-insight .real em{font-style:italic;color:var(--terra);position:relative}
+  .s-insight .real em::after{
+    content:"";position:absolute;left:0;right:0;bottom:-4px;height:8px;
+    background:var(--mustard);opacity:.4;z-index:-1;border-radius:2px;
+    transform:scaleX(0);transform-origin:left;
+    animation:strikeIn .6s 2.8s forwards;
+  }
+
+  /* ====== SCENE 6: PRODUCT REVEAL ====== */
+  .s-product{flex-direction:column;align-items:center;justify-content:center;gap:14px;padding:6%}
+  .product-stamp{
+    border:2.5px solid var(--ink);padding:34px 54px;border-radius:16px;
+    display:flex;flex-direction:column;align-items:center;gap:6px;
+    background:var(--paper);box-shadow:6px 7px 0 var(--ink);
+    transform:rotate(-1deg);
+    opacity:0;animation:stampIn 1.2s .2s forwards;
+  }
+  .stage.fmt-ig .product-stamp{padding:24px 36px;transform:rotate(-1deg) scale(.85)}
+  .product-logo{
+    font-family:var(--kr);font-weight:400;letter-spacing:-.02em;
+    font-size:clamp(52px,7vw,108px);color:var(--ink);line-height:1;
+  }
+  .product-en{
+    font-family:var(--serif);font-style:italic;font-weight:400;
+    font-size:clamp(20px,2.4vw,32px);color:var(--terra);margin-top:8px;
+  }
+  .product-meta{
+    font:500 10px/1 var(--mono);color:var(--ink-soft);letter-spacing:.4em;text-transform:uppercase;margin-top:18px;
+    opacity:0;animation:fadeUp 1s 1.6s forwards;
+  }
+  @keyframes stampIn{
+    0%{opacity:0;transform:rotate(-8deg) scale(1.3)}
+    60%{opacity:1;transform:rotate(2deg) scale(.95)}
+    100%{opacity:1;transform:rotate(-1deg) scale(1)}
+  }
+
+  /* ====== SCENE 7: HOW IT WORKS ====== */
+  .s-how{flex-direction:column;align-items:center;justify-content:center;gap:24px;padding:6%}
+  .how-headline{
+    font-family:var(--serif);font-size:clamp(22px,2.8vw,38px);line-height:1.3;text-align:center;
+    max-width:26ch;color:var(--ink);font-weight:400;letter-spacing:-.01em;
+    opacity:0;animation:fadeUp 1s .2s forwards;
+  }
+  .how-headline em{font-style:italic;color:var(--terra)}
+  .how-flow{
+    display:flex;align-items:center;gap:12px;margin-top:8px;flex-wrap:wrap;justify-content:center;
+    opacity:0;animation:fadeUp 1s .9s forwards;
+  }
+  .stage.fmt-ig .how-flow{flex-direction:column;gap:10px}
+  .flow-box{
+    background:var(--paper);border:1.5px solid var(--ink);
+    border-radius:8px;padding:12px 16px;font:500 12px/1.3 var(--sans);text-align:center;min-width:130px;
+    box-shadow:2px 3px 0 var(--ink);
+  }
+  .flow-box.user{color:var(--ink)}
+  .flow-box.refuse{color:var(--rose);border-color:var(--rose);box-shadow:2px 3px 0 var(--rose)}
+  .flow-box.redirect{color:var(--sage);border-color:var(--sage);box-shadow:2px 3px 0 var(--sage)}
+  .flow-arrow{color:var(--ink-soft);font-size:20px;font-family:var(--serif)}
+  .stage.fmt-ig .flow-arrow{transform:rotate(90deg)}
+
+  /* ====== SCENE 8: PROOF — MOM PHOTO + QUOTE ====== */
+  .s-proof{flex-direction:row;gap:42px;align-items:center;justify-content:center;padding:5% 7% 11%}
+  .stage.fmt-ig .s-proof{flex-direction:column;gap:18px;padding:7% 6% 17%}
+  .photo-stack{
+    flex:0 0 auto;width:36%;max-width:380px;position:relative;
+    opacity:0;animation:photoIn 1.2s .2s forwards;
+  }
+  .stage.fmt-ig .photo-stack{width:65%;max-width:none}
+  .photo-main{
+    border:1.5px solid var(--ink);border-radius:6px;overflow:hidden;
+    box-shadow:6px 7px 0 var(--ink);background:#fff;transform:rotate(-2deg);
+  }
+  .photo-main img{width:100%;height:100%;display:block;object-fit:cover}
+  .photo-caption{
+    position:absolute;bottom:12px;left:14px;
+    font:400 20px/1 var(--hand);color:var(--terra);transform:rotate(-3deg);
+    background:rgba(248,243,232,.82);border-radius:999px;padding:4px 10px;
+    text-shadow:0 0 6px var(--paper);
+  }
+  .quote-block{flex:1;max-width:48%;opacity:0;animation:fadeUp 1s 1s forwards}
+  .stage.fmt-ig .quote-block{max-width:90%;text-align:center}
+  .quote-block .quotemark{font-family:var(--serif);font-size:84px;line-height:.5;color:var(--mustard);opacity:.8}
+  .quote-block .kotext{font:400 16px/1.55 var(--kr);color:var(--ink-soft);margin:14px 0 8px}
+  .stage.fmt-ig .quote-block .kotext{font-size:14px}
+  .quote-block .entext{
+    font-family:var(--serif);font-style:italic;font-weight:500;
+    font-size:clamp(22px,2.8vw,36px);line-height:1.25;color:var(--ink);letter-spacing:-.01em;
+  }
+  .quote-block .attr{font:500 11px/1 var(--mono);color:var(--terra);letter-spacing:.22em;text-transform:uppercase;margin-top:14px}
+
+  /* ====== SCENE 9: THESIS ====== */
+  .s-thesis{flex-direction:column;align-items:center;justify-content:center;gap:22px;text-align:center;padding:6%}
+  .thesis-ill{width:28%;max-width:280px;opacity:0;animation:fadeUp 1s .1s forwards}
+  .stage.fmt-ig .thesis-ill{width:52%;max-width:none}
+  .thesis-line{
+    font-family:var(--serif);font-weight:400;
+    font-size:clamp(30px,4.4vw,68px);line-height:1.18;color:var(--ink);letter-spacing:-.015em;
+    max-width:20ch;
+  }
+  .thesis-line .a{opacity:0;animation:wordIn .8s .4s forwards}
+  .thesis-line .b{opacity:0;animation:wordIn .8s 1s forwards}
+  .thesis-line .c{opacity:0;animation:wordIn .8s 1.6s forwards;font-style:italic;color:var(--terra)}
+  .thesis-url{
+    font:500 11px/1 var(--mono);color:var(--ink-soft);letter-spacing:.18em;text-transform:uppercase;margin-top:6px;
+    opacity:0;animation:fadeUp 1s 2.4s forwards;
+  }
+  .thesis-brand{
+    font-family:var(--serif);font-style:italic;color:var(--muted);font-size:12px;letter-spacing:.04em;
+    opacity:0;animation:fadeUp 1s 2.8s forwards;
+  }
+
+  /* --- Progress bar --- */
+  .progress{
+    position:absolute;left:0;right:0;bottom:0;height:3px;background:rgba(31,26,20,.08);z-index:120;
+    opacity:0;transition:opacity .4s;
+  }
+  body.playing .progress{opacity:1}
+  .progress .bar{height:100%;background:var(--terra);width:0%;transition:width .1s linear}
+
+  /* --- Animations --- */
+  @keyframes fadeIn{from{opacity:0}to{opacity:1}}
+  @keyframes fadeUp{from{opacity:0;transform:translateY(14px)}to{opacity:1;transform:translateY(0)}}
+  @keyframes popIn{from{opacity:0;transform:translateY(16px) scale(.96)}to{opacity:1;transform:translateY(0) scale(1)}}
+  @keyframes photoIn{from{opacity:0;transform:translateX(-20px) rotate(-2deg)}to{opacity:1;transform:translateX(0) rotate(-2deg)}}
+  @keyframes wordIn{from{opacity:0;transform:translateY(10px)}to{opacity:1;transform:translateY(0)}}
+
+  body.playing{cursor:none}
+</style>
+</head>
+<body>
+
+<div class="controls">
+  <div class="pill">
+    <span class="brand">Today's Stock — Marketing Minute</span>
+  </div>
+  <div class="pill">
+    <button id="btn-yt" class="active">YouTube 16:9</button>
+    <button id="btn-ig">Instagram 9:16</button>
+  </div>
+</div>
+
+<div class="stage fmt-yt" id="stage">
+
+  <div class="play-overlay" id="overlay">
+    <h1>A 60-second story<br/><em>about a Custom GPT built for one person.</em></h1>
+    <div class="row">
+      <button class="play-btn" id="play">▶  Play (60s)</button>
+      <button class="toggle-voice on" id="voice-toggle">🔊 Narration: ON</button>
+    </div>
+    <p class="hint">Switch format above · Space = play · R = reset · F = fullscreen</p>
+  </div>
+
+  <!-- ===== SCENE 1: YOUTUBE OVERLOAD (0–9s) ===== -->
+  <div class="scene s-spiral" data-scene="1">
+    <div class="yt-grid"><!-- JS populated --></div>
+    <div class="vignette"></div>
+    <div class="overlay-text">
+      <div class="tag">Every morning</div>
+      <div class="line">Hours on Korean stock YouTube. <em>Too much information,</em> no clear read.</div>
+    </div>
+  </div>
+
+  <!-- ===== SCENE 2: TRIED AI (9–17s) ===== -->
+  <div class="scene s-tried" data-scene="2">
+    <div class="chat-frame">
+      <div class="gpt-header">
+        <div class="gpt-dot">G</div>
+        <div class="gpt-name">ChatGPT<span class="gpt-sub">First attempt · before "Today's Stock"</span></div>
+      </div>
+      <div class="chat-body">
+        <div class="bubble-user">이 주식 사도 될까요?<span class="en">("Should I buy this stock?")</span></div>
+        <div class="typing" id="typing-1"><span></span><span></span><span></span></div>
+        <div class="bubble-gpt">"Investment decisions are <strong>yours to make</strong>."</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ===== SCENE 3: WALKED AWAY (17–24s) ===== -->
+  <div class="scene s-walked" data-scene="3">
+    <div class="walked-ill">
+      <svg class="ill" viewBox="0 0 420 260" xmlns="http://www.w3.org/2000/svg">
+        <defs>
+          <filter id="rough3" x="-8%" y="-8%" width="116%" height="116%">
+            <feTurbulence type="fractalNoise" baseFrequency="0.022" numOctaves="2" seed="7" result="t"/>
+            <feDisplacementMap in="SourceGraphic" in2="t" scale="4.5" xChannelSelector="R" yChannelSelector="G"/>
+          </filter>
+        </defs>
+        <g filter="url(#rough3)">
+          <!-- Dead-end answer: a refusal card that gives no next step -->
+          <path class="stroke" style="stroke-width:7" d="
+            M 58 52
+            L 300 52
+            C 318 52, 328 62, 328 80
+            L 328 174
+            C 328 192, 318 202, 300 202
+            L 58 202
+            C 40 202, 30 192, 30 174
+            L 30 80
+            C 30 62, 40 52, 58 52
+            Z
+          "/>
+          <path class="stroke" style="stroke-width:7" d="M 78 92 L 258 92"/>
+          <path class="stroke" style="stroke-width:7" d="M 78 126 L 244 126"/>
+          <path class="stroke" style="stroke-width:7" d="M 78 160 L 194 160"/>
+          <path class="stroke" style="stroke-width:7" d="M 292 84 L 354 146"/>
+          <path class="stroke" style="stroke-width:7" d="M 354 84 L 292 146"/>
+          <path class="stroke stroke-thin" d="M 78 28 C 138 12, 232 14, 292 32"/>
+          <path class="stroke stroke-thin" d="M 42 232 Q 198 240 354 232"/>
+        </g>
+      </svg>
+    </div>
+    <div class="walked-text">
+      <div class="quote">She walked away.</div>
+      <div class="attrib">— same pattern as last time</div>
+      <div class="kakao-snip">
+        <div class="from">엄마 · KakaoTalk</div>
+        물어봤더니 그냥 알아서 결정하래
+        <div class="en">"I asked but it just told me to decide on my own."</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ===== SCENE 4: DOCTOR PIVOT (24–32s) ===== -->
+  <div class="scene s-doctor" data-scene="4">
+    <div class="doctor-ill">
+      <svg class="ill" viewBox="0 0 280 320" xmlns="http://www.w3.org/2000/svg">
+        <defs>
+          <filter id="rough4" x="-8%" y="-8%" width="116%" height="116%">
+            <feTurbulence type="fractalNoise" baseFrequency="0.024" numOctaves="2" seed="11" result="t"/>
+            <feDisplacementMap in="SourceGraphic" in2="t" scale="4" xChannelSelector="R" yChannelSelector="G"/>
+          </filter>
+        </defs>
+        <g filter="url(#rough4)">
+          <!-- Bounded task: medical note translated through the phone -->
+          <path class="stroke" style="stroke-width:7" d="
+            M 46 54
+            L 156 54
+            C 170 54, 178 62, 178 76
+            L 178 222
+            C 178 236, 170 244, 156 244
+            L 46 244
+            C 32 244, 24 236, 24 222
+            L 24 76
+            C 24 62, 32 54, 46 54
+            Z
+          "/>
+          <path class="stroke" style="stroke-width:7" d="M 100 88 L 100 126"/>
+          <path class="stroke" style="stroke-width:7" d="M 80 107 L 120 107"/>
+          <path class="stroke" style="stroke-width:7" d="M 58 158 L 144 158"/>
+          <path class="stroke" style="stroke-width:7" d="M 58 190 L 136 190"/>
+          <path class="stroke stroke-thin" d="M 70 224 L 132 224"/>
+          <path class="stroke" style="stroke-width:7" d="
+            M 206 82
+            L 256 82
+            C 268 82, 274 88, 274 100
+            L 274 146
+            C 274 158, 268 164, 256 164
+            L 230 164
+            L 206 190
+            L 212 164
+            L 206 164
+            C 194 164, 188 158, 188 146
+            L 188 100
+            C 188 88, 194 82, 206 82
+            Z
+          "/>
+          <path class="stroke stroke-thin" d="M 212 114 L 252 114"/>
+          <path class="stroke stroke-thin" d="M 212 136 L 244 136"/>
+          <path class="stroke stroke-thin" d="M 184 106 C 174 106, 168 112, 168 124"/>
+          <path class="stroke stroke-thin" d="M 184 144 C 174 144, 168 138, 168 126"/>
+        </g>
+      </svg>
+    </div>
+    <div class="doctor-content">
+      <div class="doctor-eyebrow">but here's the thing —</div>
+      <div class="doctor-line">She <em>already</em> uses ChatGPT. Every day.</div>
+      <div class="doctor-cards">
+        <div class="doctor-card"><span class="ico">🏥</span>Translates medical terms at the doctor's</div>
+        <div class="doctor-card"><span class="ico">💬</span>Comfortable when the task is clear</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ===== SCENE 5: INSIGHT (32–40s) ===== -->
+  <div class="scene s-insight" data-scene="5">
+    <div class="strike">The problem wasn't her.</div>
+    <div class="real">She didn't have a tool built for <em>this task.</em></div>
+  </div>
+
+  <!-- ===== SCENE 6: PRODUCT REVEAL (40–46s) ===== -->
+  <div class="scene s-product" data-scene="6">
+    <div class="product-stamp">
+      <div class="product-logo">오늘의 주식</div>
+      <div class="product-en">Today's Stock</div>
+    </div>
+    <div class="product-meta">A Custom GPT · Built for one person</div>
+  </div>
+
+  <!-- ===== SCENE 7: HOW IT WORKS (46–53s) ===== -->
+  <div class="scene s-how" data-scene="7">
+    <div class="how-headline">It doesn't decide for her.<br/>It <em>lowers the cost</em> of deciding herself.</div>
+    <div class="how-flow">
+      <div class="flow-box user">Mom asks<br/>"Should I buy?"</div>
+      <div class="flow-arrow">→</div>
+      <div class="flow-box refuse">Refuse</div>
+      <div class="flow-arrow">+</div>
+      <div class="flow-box redirect">Watch / Wait / Caution<br/>bands instantly</div>
+    </div>
+  </div>
+
+  <!-- ===== SCENE 8: PROOF (53–60s) ===== -->
+  <div class="scene s-proof" data-scene="8">
+    <div class="photo-stack">
+      <div class="photo-main">
+        <img src="mom_using_gpt.jpg" alt="Mom using Today's Stock GPT" />
+      </div>
+      <div class="photo-caption">엄마 · v1.2</div>
+    </div>
+    <div class="quote-block">
+      <div class="quotemark">"</div>
+      <div class="kotext">이렇게 보여주니까 일일이 찾지 않아도 되고 브리핑해주는 비서처럼 아주 좋아</div>
+      <div class="entext">It's like having a briefing secretary — I don't have to search one by one anymore.</div>
+      <div class="attr">— Mom, after Test 2</div>
+    </div>
+  </div>
+
+  <!-- ===== SCENE 9: THESIS (60–62s hold) ===== -->
+  <div class="scene s-thesis" data-scene="9">
+    <div class="thesis-ill">
+      <svg class="ill" viewBox="0 0 420 260" xmlns="http://www.w3.org/2000/svg">
+        <defs>
+          <filter id="rough9" x="-8%" y="-8%" width="116%" height="116%">
+            <feTurbulence type="fractalNoise" baseFrequency="0.022" numOctaves="2" seed="13" result="t"/>
+            <feDisplacementMap in="SourceGraphic" in2="t" scale="4" xChannelSelector="R" yChannelSelector="G"/>
+          </filter>
+        </defs>
+        <g filter="url(#rough9)">
+          <!-- Right task, right tool: a puzzle piece fitting into a clear answer card -->
+          <path class="stroke" d="
+            M 170 60
+            L 330 60
+            C 348 60, 358 70, 358 88
+            L 358 194
+            C 358 212, 348 222, 330 222
+            L 170 222
+            C 152 222, 142 212, 142 194
+            L 142 88
+            C 142 70, 152 60, 170 60
+            Z
+          "/>
+          <path class="stroke" d="M 194 116 L 232 154 L 310 104"/>
+          <path class="stroke stroke-thin" d="M 198 184 L 310 184"/>
+          <path class="stroke stroke-thin" d="M 224 204 L 284 204"/>
+          <path class="stroke" d="
+            M 52 104
+            L 118 104
+            C 116 92, 124 82, 136 82
+            C 148 82, 156 92, 154 104
+            L 170 104
+            L 170 134
+            C 158 132, 148 140, 148 152
+            C 148 164, 158 172, 170 170
+            L 170 202
+            L 52 202
+            Z
+          "/>
+          <path class="stroke" d="
+            M 142 138
+            L 168 138
+            C 180 138, 188 146, 188 158
+            C 188 170, 180 178, 168 178
+            L 142 178
+          "/>
+          <path class="stroke stroke-thin" d="M 78 136 L 122 136"/>
+          <path class="stroke stroke-thin" d="M 78 164 L 134 164"/>
+        </g>
+      </svg>
+    </div>
+    <div class="thesis-line">
+      <span class="a">Right tool.</span>
+      <span class="b">Right person.</span><br/>
+      <span class="c">They'll use it.</span>
+    </div>
+    <div class="thesis-url">chatgpt.com/g/today's-stock</div>
+    <div class="thesis-brand">오늘의 주식 — Today's Stock · AI 201 Project 3 · Kelly</div>
+  </div>
+
+  <!-- Subtitle layer -->
+  <div class="subtitle" id="subtitle"><div class="sub-inner" id="sub-inner"></div></div>
+
+  <!-- Progress bar -->
+  <div class="progress"><div class="bar" id="bar"></div></div>
+
+</div>
+
+<script>
+  // ============ Format toggle ============
+  const stage = document.getElementById('stage');
+  const btnYT = document.getElementById('btn-yt');
+  const btnIG = document.getElementById('btn-ig');
+  function setFormat(fmt){
+    stage.classList.remove('fmt-yt','fmt-ig');
+    stage.classList.add(fmt);
+    btnYT.classList.toggle('active', fmt==='fmt-yt');
+    btnIG.classList.toggle('active', fmt==='fmt-ig');
+  }
+  btnYT.onclick = () => setFormat('fmt-yt');
+  btnIG.onclick = () => setFormat('fmt-ig');
+
+  // ============ Build YouTube cards ============
+  const ytTitles = [
+    {t:"오늘의 미장 분석 [실시간]", m:"라이브 · 1.2만"},
+    {t:"삼성전자 추가매수? 지금?", m:"3시간 전"},
+    {t:"엔비디아 실적 발표 정리", m:"5시간 전"},
+    {t:"파월 의장 발언 분석", m:"1일 전"},
+    {t:"SK하이닉스 단기 전망", m:"7시간 전"},
+    {t:"테슬라 차트 패턴 분석", m:"2일 전"},
+    {t:"환율 1400원 돌파", m:"실시간"},
+    {t:"외국인 수급 동향", m:"4시간 전"},
+    {t:"반도체 슈퍼사이클?", m:"1일 전"},
+    {t:"미장 핵심 종목 5선", m:"6시간 전"},
+    {t:"내일 한국장 예상", m:"2시간 전"},
+    {t:"코스피 박스권 분석", m:"3일 전"},
+    {t:"긴급! Fed 발언 정리", m:"라이브"},
+    {t:"개인투자자 매매동향", m:"8시간 전"},
+    {t:"AI 관련주 정리", m:"1일 전"},
+  ];
+  const grid = document.querySelector('.yt-grid');
+  ytTitles.forEach(({t,m}) => {
+    const card = document.createElement('div');
+    card.className = 'yt-card';
+    card.innerHTML = `<div class="thumb"></div><div class="title">${t}</div><div class="meta">${m}</div>`;
+    grid.appendChild(card);
+  });
+
+  // ============ Timeline (9 scenes, 60s + 2s hold) ============
+  const timeline = [
+    {scene:1, start: 0.0, end: 9.0,  sub:"Every morning, my mom spends hours on Korean stock YouTube — too much information, no clear read.", say:"Every morning, my mom spends hours on Korean stock YouTube. Too much information. No clear read.", audio:"Marketing_Minute_Audio/scene1.wav"},
+    {scene:2, start: 9.0, end:17.0,  sub:"She asked AI for help once. It told her: “That’s your decision to make.”", say:"She asked AI for help once. It told her: that's your decision to make.", audio:"Marketing_Minute_Audio/scene2.wav"},
+    {scene:3, start:17.0, end:24.0,  sub:"She walked away — same pattern as last time.", say:"She walked away. Same pattern as last time.", audio:"Marketing_Minute_Audio/scene3.wav"},
+    {scene:4, start:24.0, end:32.0,  sub:"But she uses ChatGPT every day — at the doctor’s office, for translation.", say:"But she uses ChatGPT every day. At the doctor's office, for translation.", audio:"Marketing_Minute_Audio/scene4.wav"},
+    {scene:5, start:32.0, end:40.0,  sub:"The problem wasn’t her. She didn’t have a tool built for this task.", say:"The problem wasn't her. She just didn't have a tool built for this task.", audio:"Marketing_Minute_Audio/scene5.wav"},
+    {scene:6, start:40.0, end:46.0,  sub:"So I built one. 오늘의 주식 — Today’s Stock.", say:"So I built one. Today's Stock.", audio:"Marketing_Minute_Audio/scene6.wav"},
+    {scene:7, start:46.0, end:53.0,  sub:"It doesn’t decide for her. It lowers the cost of deciding herself.", say:"It doesn't decide for her. It lowers the cost of deciding herself.", audio:"Marketing_Minute_Audio/scene7.wav"},
+    {scene:8, start:53.0, end:60.0,  sub:"After two tests: “It’s like having a briefing secretary.” — Mom", say:"After two tests, she said: it's like having a briefing secretary.", audio:"Marketing_Minute_Audio/scene8.wav"},
+    {scene:9, start:60.0, end:62.0,  sub:"Right tool. Right person. They’ll use it.", say:"Right tool. Right person. They'll use it.", audio:"Marketing_Minute_Audio/scene9.wav"},
+  ];
+
+  const sceneEls = {};
+  document.querySelectorAll('.scene').forEach(el => {
+    sceneEls[el.dataset.scene] = el;
+  });
+
+  const subEl = document.getElementById('subtitle');
+  const subInner = document.getElementById('sub-inner');
+  const bar = document.getElementById('bar');
+
+  let activeScene = null;
+  let startTime = null;
+  let rafId = null;
+  const DURATION = 62.0;
+
+  function showScene(n){
+    if(activeScene === n) return;
+    Object.values(sceneEls).forEach(el => el.classList.remove('on'));
+    const target = sceneEls[n];
+    target.querySelectorAll('*').forEach(el => {
+      const anims = getComputedStyle(el).animationName;
+      if(anims && anims !== 'none'){
+        el.style.animation = 'none';
+        el.offsetHeight;
+        el.style.animation = '';
+      }
+    });
+    target.classList.add('on');
+    activeScene = n;
+    // Play the narration line for this scene
+    const tl = timeline.find(t => t.scene === n);
+    if(tl) playNarration(tl);
+  }
+
+  function setSubtitle(text){
+    if(subInner.dataset.current === text) return;
+    subInner.dataset.current = text;
+    subEl.classList.remove('show');
+    setTimeout(() => {
+      subInner.textContent = text;
+      if(text) subEl.classList.add('show');
+    }, 200);
+  }
+
+  function tick(t){
+    if(!startTime) startTime = t;
+    const elapsed = (t - startTime)/1000;
+    if(elapsed >= DURATION){
+      bar.style.width = '100%';
+      return;
+    }
+    bar.style.width = ((elapsed/DURATION)*100) + '%';
+    const cur = timeline.find(item => elapsed >= item.start && elapsed < item.end);
+    if(cur){
+      showScene(cur.scene);
+      setSubtitle(cur.sub);
+    }
+    rafId = requestAnimationFrame(tick);
+  }
+
+  // ============ Narration (local audio files + Web Speech fallback) ============
+  let voiceOn = true;
+  let bestVoice = null;
+  let currentAudio = null;
+  const audioCache = new Map();
+
+  function stopNarration(){
+    if(currentAudio){
+      currentAudio.pause();
+      currentAudio.currentTime = 0;
+      currentAudio = null;
+    }
+    if('speechSynthesis' in window) speechSynthesis.cancel();
+  }
+
+  function getAudio(src){
+    if(!audioCache.has(src)){
+      const audio = new Audio(src);
+      audio.preload = 'auto';
+      audio.volume = 0.95;
+      audioCache.set(src, audio);
+    }
+    return audioCache.get(src);
+  }
+
+  function playNarration(tl){
+    if(!voiceOn) return;
+    stopNarration();
+    speak(tl.say);
+  }
+
+  function pickVoice(){
+    const voices = speechSynthesis.getVoices();
+    if(!voices.length) return null;
+    // Prefer premium / enhanced English female voices
+    const preferred = [
+      'Ava (Premium)','Ava (Enhanced)','Ava',
+      'Samantha (Enhanced)','Samantha',
+      'Allison (Enhanced)','Allison',
+      'Karen','Moira','Tessa',
+      'Google US English','Microsoft Aria Online (Natural) - English (United States)'
+    ];
+    for(const name of preferred){
+      const v = voices.find(x => x.name.includes(name));
+      if(v) return v;
+    }
+    return voices.find(v => v.lang.startsWith('en')) || voices[0];
+  }
+  function speak(text){
+    if(!voiceOn || !('speechSynthesis' in window)) return;
+    speechSynthesis.cancel();
+    const u = new SpeechSynthesisUtterance(text);
+    u.rate = 0.92;
+    u.pitch = 1.0;
+    u.volume = 0.95;
+    if(!bestVoice) bestVoice = pickVoice();
+    if(bestVoice) u.voice = bestVoice;
+    speechSynthesis.speak(u);
+  }
+  // Load voices async
+  if('speechSynthesis' in window){
+    speechSynthesis.onvoiceschanged = () => { bestVoice = pickVoice(); };
+    bestVoice = pickVoice();
+  }
+  const voiceToggle = document.getElementById('voice-toggle');
+  voiceToggle.onclick = () => {
+    voiceOn = !voiceOn;
+    voiceToggle.classList.toggle('on', voiceOn);
+    voiceToggle.textContent = voiceOn ? '🔊 Narration: ON' : '🔇 Narration: OFF';
+    if(!voiceOn) stopNarration();
+  };
+
+  // ============ Play ============
+  const overlay = document.getElementById('overlay');
+  const playBtn = document.getElementById('play');
+  function play(){
+    document.body.classList.add('playing');
+    startTime = null;
+    if(rafId) cancelAnimationFrame(rafId);
+    if(voiceOn && 'speechSynthesis' in window){
+      const u = new SpeechSynthesisUtterance(' ');
+      u.volume = 0;
+      speechSynthesis.speak(u);
+    }
+    rafId = requestAnimationFrame(tick);
+  }
+  playBtn.onclick = play;
+
+  // ============ Keyboard ============
+  window.addEventListener('keydown', (e) => {
+    if(e.code === 'Space'){ e.preventDefault(); play(); }
+    if(e.key.toLowerCase() === 'r'){
+      document.body.classList.remove('playing');
+      if(rafId) cancelAnimationFrame(rafId);
+      stopNarration();
+      Object.values(sceneEls).forEach(el => el.classList.remove('on'));
+      bar.style.width = '0%';
+      setSubtitle('');
+      activeScene = null;
+    }
+    if(e.key.toLowerCase() === 'y') setFormat('fmt-yt');
+    if(e.key.toLowerCase() === 'i') setFormat('fmt-ig');
+    if(e.key.toLowerCase() === 'f'){
+      if(!document.fullscreenElement) document.documentElement.requestFullscreen();
+      else document.exitFullscreen();
+    }
+    if(e.key.toLowerCase() === 'm'){ voiceToggle.click(); }
+  });
+
+  // Hidden preview mode for checking individual scenes:
+  // Marketing_Minute.html?previewScene=3 or ?previewScene=8&fmt=ig
+  const previewParams = new URLSearchParams(window.location.search);
+  const previewScene = Number(previewParams.get('previewScene'));
+  if(previewScene && sceneEls[previewScene]){
+    if(previewParams.get('fmt') === 'ig') setFormat('fmt-ig');
+    voiceOn = false;
+    document.body.classList.add('playing');
+    showScene(previewScene);
+    const tl = timeline.find(t => t.scene === previewScene);
+    setSubtitle(tl ? tl.sub : '');
+    bar.style.width = tl ? ((tl.start / DURATION) * 100) + '%' : '0%';
+  }
+</script>
+</body>
+</html>

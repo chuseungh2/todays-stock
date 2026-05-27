@@ -263,6 +263,4 @@ Designing for mom meant building with the assumption that she can't write good p
 
 > ⚠️ 60-second video — YouTube + Instagram format
 
-**Watch:** [`Marketing_Minute.html`](./Marketing_Minute.html)
-
-This HTML file plays the 60-second Marketing Minute with built-in subtitles and browser narration. For public viewing, publish this repository with GitHub Pages and use the Pages URL for `Marketing_Minute.html`.
+**Watch:** [Marketing Minute Video](https://chuseungh2.github.io/todays-stock/Marketing_Minute.html)

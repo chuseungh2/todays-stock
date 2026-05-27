@@ -1,0 +1,42 @@
+flowchart TD
+    User["👩 User (Mom)\nKorean woman in her 50s\nChatGPT App"]
+
+    subgraph INPUT["📥 Input Types"]
+        Q1["How are my stocks today?\n(holdings check)"]
+        Q2["Walk me through last night's\nU.S. market for today's Korean market"]
+        Q3["Should I buy? / Should I sell?\n(trade decision questions)"]
+        Q4["What does this mean?\n(English / financial jargon)"]
+        Q5["What stocks are people\ntalking about lately?"]
+        Q6["Paste report or news screenshot\n(translation request)"]
+    end
+
+    subgraph GPT["⚙️ Today's Stock — Custom GPT\nSystem Prompt v1.2"]
+        RULE["Absolute Rule Check\nNo buy/sell/timing recommendations"]
+        WEB["Web Search\n(live prices & news)"]
+        LOGIC["Response Logic\nJudgment / Translation / News"]
+        REDIRECT["Refuse + Redirect\nNever send empty-handed"]
+    end
+
+    subgraph OUTPUT["📤 Output Types"]
+        O1["One-line summary\n+ Bullish & bearish cases\n+ U.S. market connection\n+ Watch / Wait / Caution conditions"]
+        O2["Previous night's U.S. big 3 indices\nSemiconductor & AI sector flow\nExchange rate → Korean market impact"]
+        O3["One-sentence refusal\n+ Immediate judgment material\n(bullish/bearish/signals to check)"]
+        O4["English term\n→ Plain Korean explanation"]
+        O5["Trending stocks & themes\n+ Bullish & bearish cases\n(info only — not a recommendation)"]
+        O6["Korean translation\n+ Key summary"]
+    end
+
+    HOLDINGS["📋 Holdings\nSamsung Electronics · SK Hynix\nNvidia · Tesla"]
+
+    User --> Q1 & Q2 & Q3 & Q4 & Q5 & Q6
+    Q1 & Q2 & Q3 & Q4 & Q5 & Q6 --> RULE
+    RULE --> WEB
+    WEB --> LOGIC
+    LOGIC -- "trade question" --> REDIRECT
+    REDIRECT --> O3
+    LOGIC -- "holdings / market" --> O1
+    LOGIC -- "U.S. → Korea" --> O2
+    LOGIC -- "translation" --> O4 & O6
+    LOGIC -- "news" --> O5
+    HOLDINGS -.-> LOGIC
+    O1 & O2 & O3 & O4 & O5 & O6 --> User
